@@ -1,0 +1,70 @@
+// Base button styles - reusable everywhere
+.btn {
+  color: white;
+  cursor: pointer;
+  outline: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  transition: filter 0.2s ease-in-out, transform 0.2s ease-in-out;
+  border-style: solid;
+  border-width: 3px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.2);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+    filter: none;
+  }
+}
+
+// Primary style variant - for start learning button etc.
+.btn-primary {
+  @extend .btn;
+  background-image: linear-gradient(to bottom, $color-light-purple 50%, $color-medium-purple 50%);
+  border-color: $color-dark-blue;
+  padding: 1.2rem 3rem;
+  font-size: 1.3rem;
+  border-width: 4px;
+
+  // Specific hover transform effect for .btn-primary
+  &:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    filter: brightness(1.2);
+  }
+
+  // Animation for welcome page button (optional)
+  &.animated {
+    opacity: 0;
+    transform: scale(0);
+    animation-name: bounceIn;
+    animation-duration: 0.8s;
+    animation-timing-function: ease-out;
+    animation-delay: 0.8s;
+    animation-fill-mode: forwards;
+    will-change: opacity, transform;
+  }
+}
+
+// Secondary style variant - for unit card buttons
+.btn-unit-card {
+  @extend .btn;
+  background-image: linear-gradient(to bottom, $color-button-gradient-start 50%, $color-button-gradient-end 50%);
+  border-color: $color-button-border;
+  border-width: 3px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+
+  &:disabled {
+    background-image: none;
+    background-color: $color-light-yellow;
+    color: #666666;
+    border: 3px solid rgba(0, 0, 0, 0.2);
+  }
+}

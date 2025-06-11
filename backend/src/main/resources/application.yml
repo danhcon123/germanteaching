@@ -1,0 +1,24 @@
+spring:  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:appdb}
+    username: ${POSTGRES_USER:gauva}
+    password: ${POSTGRES_PASSWORD:gauva}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate.format_sql: true
+  flyway:
+    basline-on-migrate: true
+    baseline-version: 1
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health, info, metrics
+    health:
+      db:
+        enabled: true

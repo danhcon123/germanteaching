@@ -1,0 +1,24 @@
+@keyframes floatAndFade {
+    0%   {transform: translate(0, 0) scale(0.8) rotate(0deg); opacity: 0;}
+    25%  {opacity: 0.3; transform: translate(5vw, -5vh) scale(1) rotate(45deg);}
+    50%  {opacity: 0.5; transform: translate(10vw, 10vh) scale(1.2) rotate(90deg);}
+    75%  {opacity: 0.3; transform: translate(-5vw, 15vh) scale(0.9) rotate(135deg);}
+    100% {transform: translate(0,0) scale(0.8) rotate(180deg); opacity: 0;}
+}
+
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@keyframes fadeInScale {
+    from {opacity: 0; transform: scale(0.9);}
+    to {opacity: 1; transform: scale(1);}
+}
+
+@keyframes bounceIn {
+    0%   {transform: scale(0.3); opacity: 0;}
+    50%  {transform: scale(1.05); opacity: 1;}
+    70%  {transform: scale(0.95);}
+    100% {transform: scale(1); opacity:1;}
+}

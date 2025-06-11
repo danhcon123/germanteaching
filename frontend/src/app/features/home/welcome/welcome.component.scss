@@ -1,0 +1,79 @@
+@import 'colors';
+@import 'buttons';
+
+.welcome-content {
+    position: relative;
+    flex-grow: 1;
+    min-height: calc(100vh - 4rem);
+    padding: 6rem 2rem 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding-top: 6rem;
+    max-width: 900px;
+    margin-top: 0;
+    z-index: 1;
+}
+.motivation-title {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    max-width: 800px;
+    margin: 0 auto;
+    color: $color-light-yellow;
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+    animation: fadeInScale 1s ease-out forwards;
+    animation-delay: 0.2s;
+    opacity: 0;
+    transform: scale(0.9);
+}
+.introduction-text {
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    line-height: 1.6;
+    color: $color-white;
+    margin-bottom: 2.5rem;
+    max-width: 700px;
+    animation: fadeIn 1s ease-out forwards;
+    animation-delay: 0.5s;
+    opacity: 0;
+  .intro-icon {
+    display: inline-block;
+    vertical-align: middle;  // aligns the bottom of the icon with the text
+    width: auto;
+    height: 1.8rem;
+    margin-left: 0.2rem;     // space between text and icon
+  }
+}
+.start-learning-button {
+  @extend .btn;           // base button styles 
+  @extend .btn-primary;   // primary button styles  
+  
+  opacity: 0;
+  transform: scale(0);
+  animation-name:bounceIn; 
+  animation-duration: 1s; 
+  animation-timing-function: ease-out; 
+  animation-delay: 0.8s; 
+  animation-fill-mode: forwards; 
+  will-change: opacity, transform; 
+}
+@media (max-width: 640px) {
+  .motivation-title {
+    font-size: 2.5rem;
+  }
+  .introduction-text {
+    font-size: 1.1rem;
+  }
+  .start-learning-button {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  .app-logo {
+    font-size: 2rem;
+  }
+}
