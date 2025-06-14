@@ -18,7 +18,7 @@ DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS lessons;
 DROP TABLE IF EXISTS modules;
 DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS password_reset_tokens;
+
 
 -- ======================================
 -- 2. Optional ENUM Types (Create before use)
@@ -52,16 +52,6 @@ CREATE TABLE users (
     streak_freezes_owned INTEGER NOT NULL DEFAULT 0, -- Corrected 'NOT NULLL' to 'NOT NULL'
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_login_at TIMESTAMPTZ
-);
-
--- 3.2 password_reset_tokens Table
-CREATE TABLE password_reset_tokens (
-    id SERIAL PRIMARY KEY,
-    token VARCHAR(255) NOT NULL UNIQUE,
-    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    used BOOLEAN NOT NULL DEFAULT FALSE,
-    created_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expiry_date TIMESTAMPTZ NOT NULL
 );
 
 -- 3.2 modules Table

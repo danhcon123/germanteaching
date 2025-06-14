@@ -1,7 +1,7 @@
 # Existing rules in GERMANTEACHING/.gitignore (keep these)
 # ...
 
-.vscode/   
+.vscode/
 
 # Rules moved from backend/.gitignore
 
