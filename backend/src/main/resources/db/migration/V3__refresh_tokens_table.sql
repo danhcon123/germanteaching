@@ -1,6 +1,6 @@
 -- V3__create_refresh_tokens_table.sql
 CREATE TABLE refresh_tokens (
-    id            BIGSERIAL            PRIMARY KEY,
+    id            SERIAL            PRIMARY KEY,
     token         VARCHAR(255)         NOT NULL UNIQUE,
     expiry_date   TIMESTAMPTZ          NOT NULL,
     created_at    TIMESTAMPTZ          NOT NULL DEFAULT NOW(),
