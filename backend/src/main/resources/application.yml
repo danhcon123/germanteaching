@@ -6,7 +6,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate.format_sql: true
@@ -24,3 +24,50 @@ spring:
     health:
       db:
         enabled: true
+
+app:
+  # JWT Secret Key - should be at least 256 bits (32 characters) for HS256
+  # In production, use environment variables or secure configuration
+  jwtSecret: "mySecretKey1234567890"
+  # Access Token Expiration (short-lived for API requests)
+  jwtExpirationMs: 90000 # 15 minutes
+  # Refresh Token Expiration (long-lived for getting new access tokens)
+  jwtRefreshExpirationMs: 604800000 # 7 days
+
+  # Refresh token cleanup (optional)
+  refreshTokenCleanupCron: "0 0 2 * * ?" # Run at 2 AM daily
+
+# Logging configuration
+logging:
+  level:
+    com.example.germanteaching: DEBUG
+    org.springframework.security: DEBUG
+
+# For different environments
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: development
+      
+app:
+  jwtExpirationMs: 3600000          # 1 hour for development
+  jwtRefreshExpirationMs: 2592000000 # 30 days for development
+
+---
+# Production Profile  
+spring:
+  config:
+    activate:
+      on-profile: production
+      
+app:
+  jwtSecret: ${JWT_SECRET:fallbackSecretKey12345678901234567890}
+  jwtExpirationMs: 900000           # 15 minutes for production
+  jwtRefreshExpirationMs: 604800000 # 7 days for production
+  
+logging:
+  level:
+    com.example.germanteaching: INFO
+    org.springframework.security: WARN

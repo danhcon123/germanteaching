@@ -13,6 +13,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
 import org.springframework.web.cors.*;
 
+import com.example.germanteaching.security.JwtUtils;;
+
 
 @Configuration
 @EnableWebSecurity // enables Spring Security's web security support
