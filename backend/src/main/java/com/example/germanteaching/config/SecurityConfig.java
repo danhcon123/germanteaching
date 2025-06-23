@@ -18,7 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -124,19 +124,26 @@ public class SecurityConfig {
 
             // Define route authorization rules
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints (no auth required)
-                .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                // Public authentication endpoints
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh",
+                    "/api/auth/logout",
+                    "/api/auth/forgot-password",      // <— add this
+                    "/api/auth/reset-password"        // <— and this if you have one
+                ).permitAll()
+                .requestMatchers( "/api/public/**").permitAll()
                 // Health check endpoints (for monitoring)
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // All other API endpoints require authentication
+                .requestMatchers("/api/**").authenticated()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
 
-            // Add custom filters to the chain
-            .addFilter(authFilter)
-            .addFilterBefore(
-                authorizationFilter,
-                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(authorizationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAt(authFilter, UsernamePasswordAuthenticationFilter.class)
 
             // Handle authentication failures with HTTP 401 status
             .exceptionHandling(ex -> ex
