@@ -1,8 +1,15 @@
 package com.example.germanteaching.config;
 
+import com.example.germanteaching.security.CustomUserDetailsService;
+import com.example.germanteaching.security.JwtUtils;
+import com.example.germanteaching.security.JwtAuthenticationFilter;
+import com.example.germanteaching.security.JwtAuthorizationFilter;
+import com.example.germanteaching.auth.service.RefreshTokenService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.*;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -10,82 +17,202 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.server.authentication.RedirectServerAuthenticationEntryPoint;
-import org.springframework.web.cors.*;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
-import com.example.germanteaching.security.JwtUtils;
-import java.util.List;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpStatus;
 
+import java.util.Arrays;
+
+/**
+ * Central security configuration for the application.
+ *
+ * <ul>
+ *   <li>Disables CSRF (stateless JWT usage)</li>
+ *   <li>Configures session management as stateless</li>
+ *   <li>Enables CORS for allowed origins</li>
+ *   <li>Applies comprehensive security headers</li>
+ *   <li>Registers JWT-based authentication and authorization filters</li>
+ *   <li>Handles unauthorized access with HTTP status responses</li>
+ * </ul>
+ */
 @Configuration
-@EnableWebSecurity // enables Spring Security's web security support
+@EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtUtils jwtUtils; // token helper
-    private final CustomUserDetailsService userSvc; // loads UserDetail by username
-    private final RefreshTokenService refreshTokenSvc; // manages refresh token in DB
+    // Utility for generating and validating JWT tokens
+    private final JwtUtils jwtUtils;
+    // Loads user-specific data for authentication
+    private final CustomUserDetailsService userSvc;
+    // Manages persistent refresh tokens in the database
+    private final RefreshTokenService refreshTokenSvc;
 
-    public Security( JwtUtils jwtUtils,
-                    CustomUserDetailsService userSvc,
-                    RefreshTokenService refreshTokenSvc) {
+    // List of allowed CORS origins, injected from application properties
+    @Value("${app.cors.allowed-origins}")
+    private String[] allowedOrigins;
+
+    /**
+     * Constructor-based injection of required security components.
+     *
+     * @param jwtUtils helper for JWT operations
+     * @param userSvc service to load UserDetails
+     * @param refreshTokenSvc service managing refresh tokens
+     */
+    public SecurityConfig(
+            JwtUtils jwtUtils,
+            CustomUserDetailsService userSvc,
+            RefreshTokenService refreshTokenSvc) {
         this.jwtUtils = jwtUtils;
         this.userSvc = userSvc;
         this.refreshTokenSvc = refreshTokenSvc;
     }
 
-
+    /**
+     * Configures the HTTP security filter chain.
+     *
+     * @param http the HttpSecurity object to configure
+     * @return the configured SecurityFilterChain
+     * @throws Exception if configuration fails
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // 1) Create auth filter (handles /api/auth/login)
-        JwtAuthenticationFilter authFilter =
-            new JwtAuthenticationFilter(authenticationManager(http), jwtUtils, refreshTokenSvc);
-
-        // 2) Create authorization filter (validates token on every request)
+        // Get authentication manager lazily to avoid circular dependency
+        AuthenticationManager authManager = authenticationManager(http);
+        
+        // Filter for handling login requests and issuing tokens
+        JwtAuthenticationFilter authFilter = 
+            new JwtAuthenticationFilter(authManager, jwtUtils, refreshTokenSvc);
+        
+        // Filter for validating JWTs on incoming requests
         JwtAuthorizationFilter authorizationFilter = 
             new JwtAuthorizationFilter(jwtUtils, userSvc);
 
         http
-            .csrf(csrf -> csrf.disable()) // tookens only, no CSRF
-            .sessionManagement(sm -> sm
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // no HTTP session
-                .cors(Customizer.withDefaults()) //corsConfigurationSource() below
-                .authorizeHttpRequests(auth -> auth 
-                .requestMatchers("/api/auth/**", "/api/public/**").permitAll() // open
-                .anyRequest().authenticated()                                  // secure all others
-                )
-                .addFilter(authFilter)                                         // login filter
-                .addFilterBefore(authorizationFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(e -> e
-                    .authenticationEntryPoint(new RestAuthenticationEntryPoint())
-                );
+            // Disable CSRF since we're using stateless tokens
+            .csrf(csrf -> csrf.disable())
+
+            // Never create an HTTP session
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // Apply custom CORS settings
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // Apply comprehensive security headers
+            .headers(headers -> headers
+                // Content Security Policy - restrictive but functional
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'self'; " +
+                    "script-src 'self'; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "img-src 'self' data: https:; " +
+                    "font-src 'self'; " +
+                    "connect-src 'self'; " +
+                    "frame-ancestors 'none'"
+                ))
+                // Clickjacking protection - deny all framing
+                .frameOptions(frame -> frame.deny())
+                // HTTP Strict Transport Security
+                .httpStrictTransportSecurity(hsts -> 
+                    hsts.includeSubDomains(true)
+                        .maxAgeInSeconds(31536000)
+                        .preload(true))
+                // Additional security headers
+                .referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+            )
+
+            // Define route authorization rules
+            .authorizeHttpRequests(authz -> authz
+                // Public endpoints (no auth required)
+                .requestMatchers("/api/auth/**", "/api/public/**").permitAll()
+                // Health check endpoints (for monitoring)
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // All other endpoints require authentication
+                .anyRequest().authenticated()
+            )
+
+            // Add custom filters to the chain
+            .addFilter(authFilter)
+            .addFilterBefore(
+                authorizationFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+
+            // Handle authentication failures with HTTP 401 status
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            );
 
         return http.build();
     }
 
+    /**
+     * Exposes the AuthenticationManager used for user/password authentication.
+     * Uses @Lazy to prevent circular dependency issues.
+     *
+     * @param http the HttpSecurity to pull context from
+     * @return the configured AuthenticationManager
+     * @throws Exception if building fails
+     */
     @Bean
+    @Lazy
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        // wires UserDetailsService + password encoder into AuthManager
-        return http.getsharedObject(AuthenticationManagerBuilder.class)
-                   .userDetailsService(userSvc)
-                   .passwordEncoder(passwordEncoder())
-                   .and()
-                   .build();
+        return http
+            .getSharedObject(AuthenticationManagerBuilder.class)
+            .userDetailsService(userSvc)
+            .passwordEncoder(passwordEncoder())
+            .and()
+            .build();
     }
 
+    /**
+     * Password encoder bean using BCrypt with strength 12.
+     * Higher strength provides better security at the cost of performance.
+     *
+     * @return the BCryptPasswordEncoder
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 
-    // Allow calls from Angular app (adjust origin for production)
+    /**
+     * Configures CORS to allow specified origins, methods, and headers.
+     * Credentials support is enabled for refresh token cookies.
+     * 
+     * Consider using environment-specific configurations for production.
+     *
+     * @return the CorsConfigurationSource
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:4200"));
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        cfg.setAllowCredentials(true); // needed for refresh-token console
-        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
-        src.registerCorsConfiguration("/**", cfg);
-        return src;
+        
+        // Set allowed origins from properties
+        cfg.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        
+        // Allow common HTTP methods
+        cfg.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Allow necessary headers
+        cfg.setAllowedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type", 
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
+        
+        // Allow credentials for refresh token cookies
+        cfg.setAllowCredentials(true);
+        
+        // Cache preflight requests for 1 hour
+        cfg.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
     }
 }

@@ -1,10 +1,14 @@
 package com.example.germanteaching.security;
 
 import com.example.germanteaching.auth.entity.User;
+import com.example.germanteaching.security.CustomUserDetails;
 import com.example.germanteaching.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
+
+import java.util.Collections;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -17,18 +21,21 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    protected UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
         User user = userRepo.findByUsername(username)
                     .orElseThrow(() -> new UsernameNotFoundException(
                         "User not found with username: " + username
                     ));
-        return org.springframework.security.core.userdetails.User
-            .withUsername(user.getUsername())
-            .password(user.getPasswordHash())
-            .accountExpired(false)
-            .accountLocked(false)
-            .credentialsExpired(false)
-            .disabled(false)
-            .build();
+
+        return new CustomUserDetails(
+            user.getUserId(),
+            user.getUsername(),
+            user.getPasswordHash(),
+            Collections.emptyList(),
+            user.getXp(),
+            user.getLernCoins(),
+            user.getCurrentStreakDays()
+        );
     }
 }

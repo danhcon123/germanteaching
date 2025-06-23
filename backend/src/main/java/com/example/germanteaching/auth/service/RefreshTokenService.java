@@ -1,9 +1,6 @@
 package com.example.germanteaching.auth.service;
 
 import com.example.germanteaching.common.exception.TokenRefreshException;
-
-import jakarta.persistence.criteria.CriteriaBuilder.In;
-
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
 import com.example.germanteaching.auth.repository.RefreshTokenRepository;
@@ -11,7 +8,6 @@ import com.example.germanteaching.auth.repository.UserRepository;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -30,16 +26,18 @@ public class RefreshTokenService {
 
     private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
 
-    @Value("${app.jwtRefreshExpirationMs}")
-    private long refreshTokenDurationMs;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
+    private final long refreshTokenDurationMs;
 
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    /**
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
+                            UserRepository userRepository,
+                            @Value("${app.jwtRefreshExpirationMs}") long refreshTokenDurationMs) {
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.userRepository = userRepository;
+        this.refreshTokenDurationMs = refreshTokenDurationMs;
+    }
+        /**
      * Create a new refresh token for a user
      * Optionally revokes existing tokens for single-device login
      */
@@ -74,7 +72,7 @@ public class RefreshTokenService {
     /**
      * Find refresh token by token string
      */
-    public Optional<RefreshToken> findbyToken(String token) {
+    public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
@@ -83,7 +81,7 @@ public class RefreshTokenService {
      */
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (!token.isValid()){
-            String message = token.isExpired() ? "Refresh toke is expired" : "Refresh token is revoked";
+            String message = token.isExpired() ? "Refresh token is expired" : "Refresh token is revoked";
             logger.warn("{} : {}", message, token.getToken());
             refreshTokenRepository.delete(token);
             throw new TokenRefreshException(token.getToken(), message);
@@ -97,7 +95,7 @@ public class RefreshTokenService {
      */
     @Transactional
     public RefreshToken rotateRefreshToken(String oldToken){
-        RefreshToken oldRefreshToken = findbyToken(oldToken)
+        RefreshToken oldRefreshToken = findByToken(oldToken)
                 .map(this::verifyExpiration)
                 .orElseThrow(() -> new TokenRefreshException(oldToken, "Refresh token not found"));
         
@@ -117,7 +115,7 @@ public class RefreshTokenService {
      */
     @Transactional
     public void revokeRefreshToken(String token) {
-        RefreshToken refreshToken = findbyToken(token)
+        RefreshToken refreshToken = findByToken(token)
                 .orElseThrow(() -> new TokenRefreshException(token, "Refresh token not found"));
 
         refreshToken.revoke();
