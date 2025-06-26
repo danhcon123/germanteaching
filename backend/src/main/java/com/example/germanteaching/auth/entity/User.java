@@ -3,6 +3,7 @@ package com.example.germanteaching.auth.entity;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -49,6 +50,13 @@ public class User{
     // lastLoginAt is nullable and updated by application when user logs in.
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    // Add the active field
+    @Column(name = "active", nullable = false)
+    private boolean active = true; // Default to true for new users
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public User() {
     // Default constructor for JPA
@@ -162,6 +170,34 @@ public class User{
         if (this.createdAt == null) {
             this.createdAt = Instant.now();
         }
+    }
+    
+    public boolean isActive() {
+    return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+    // Method to activate user
+    public void activate (){
+        this.active = true;
+    }
+    // Method to deactivate user
+    public void deactivate (){
+        this.active = true;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = LocalDateTime.now();
+        active = true;
+    }
+        
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
 
