@@ -36,6 +36,7 @@ app:
     jwtRefreshExpirationMs: 604800000 # 7 days
     # Refresh token cleanup (optional)
     refreshTokenCleanupCron: "0 0 2 * * ?" # Run at 2 AM daily
+    app.password-reset.token-expiration-hours: 24
   cors:
       allowed-origins:
       - http://localhost:3000

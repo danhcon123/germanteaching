@@ -43,8 +43,7 @@ public class User{
 
     // let the DB default to NOW(), and mark updatable=false so JPA does not override it
     //After insert, when entity is reloaded, JPA can read the DB-generated value.
-    @Column(name = "created_at", nullable = false, updatable = false,
-             columnDefinition = "TIMESTAMP WITH TIME ZON DEFAULT now()")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
     
     // lastLoginAt is nullable and updated by application when user logs in.
@@ -56,7 +55,7 @@ public class User{
     private boolean active = true; // Default to true for new users
     
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     public User() {
     // Default constructor for JPA
@@ -67,7 +66,6 @@ public class User{
         this.email = email;
         this.passwordHash = passwordHash;
         // xp, lernCoins, streak fields default to 0 via field initializers
-        // createdAt defaults to NOW() via DB
     }
     
     // GETTERs and SETTERs
@@ -155,7 +153,6 @@ public class User{
     public Instant getCreatedAt() {
         return createdAt;
     }
-    // No setter for createdAt; it's set by DB
 
     public void setLastLoginAt(Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
@@ -163,13 +160,6 @@ public class User{
 
     public Instant getLastLoginAt() {
         return lastLoginAt;
-    }
-
-    @PrePersist
-    public void prePersist(){
-        if (this.createdAt == null) {
-            this.createdAt = Instant.now();
-        }
     }
     
     public boolean isActive() {
@@ -185,19 +175,19 @@ public class User{
     }
     // Method to deactivate user
     public void deactivate (){
-        this.active = true;
+        this.active = false;
     }
 
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
         active = true;
     }
         
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
     }
 }
 

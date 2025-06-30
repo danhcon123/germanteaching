@@ -1,9 +1,12 @@
 package com.example.germanteaching.auth.service;
 
+import com.example.germanteaching.auth.dto.ForgotPasswordRequest;
 import com.example.germanteaching.auth.dto.LoginRequest;
 import com.example.germanteaching.auth.dto.LoginResponse;
 import com.example.germanteaching.auth.dto.TokenRefreshRequest;
 import com.example.germanteaching.auth.dto.TokenRefreshResponse;
+import com.example.germanteaching.auth.dto.RegisterRequest;
+import com.example.germanteaching.auth.dto.ResetPasswordRequest;
 import com.example.germanteaching.common.exception.TokenRefreshException;
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
@@ -11,10 +14,12 @@ import com.example.germanteaching.auth.repository.RefreshTokenRepository;
 import com.example.germanteaching.auth.repository.UserRepository;
 import com.example.germanteaching.security.JwtUtils;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 /**
  * Enhanced authentication service with refresh token support.
  * Handles login, token  refresh, and logout operations
@@ -45,6 +51,10 @@ public class AuthService {
     @Autowired
     private RefreshTokenService refreshTokenService;
     
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    // Cache<username → failureCount>, entries expire 15m after last write
+  
     /**
      * Authenticate user and generate both access and refresh tokens
      * Throws 401 Unauthorized on bad credentials
@@ -99,6 +109,121 @@ public class AuthService {
                 e
             );
         }
+    }
+
+    /**
+     * Login user and return JWT token (for backward compativility with your controller)
+     * Return null if authentication fails
+     */
+    @Transactional
+    public String loginAndGetToken(LoginRequest loginRequest){
+        try {
+            LoginResponse response = authenticateUser(loginRequest);
+            return response.getAccessToken();
+        } catch (Exception e){
+            logger.error("Login failed for user: {}", loginRequest.getUsername());
+            return null;
+        }
+    }
+
+    /**
+     * Register a new user account
+     * @param registerRequest
+     * @return true, if successful, false if username/email already exists
+     */
+    @Transactional
+    public boolean register (RegisterRequest registerRequest){
+        logger.info("Attempting to register user: {}", registerRequest.getUsername());
+        
+        // Check if username already exists
+        if(userRepository.findByUsername(registerRequest.getUsername()).isPresent()){
+            logger.warn("Registration failed: username {} already exist", registerRequest.getUsername());
+            return false;
+        }
+        
+        // Check if email already exists
+        if(userRepository.findByEmail(registerRequest.getEmail()).isPresent()){
+            logger.warn("Registration failed: username {} already exist", registerRequest.getUsername());
+            return false;
+        }
+        
+        try {
+            // Create new user entity
+            User newUser = new User();
+            newUser.setUsername(registerRequest.getUsername());
+            newUser.setEmail(registerRequest.getEmail());
+            newUser.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
+            newUser.setActive(true);
+            
+            // Set default values for gamification
+            newUser.setXp(null);
+            newUser.setLernCoins(null);
+            newUser.setCurrentStreakDays(null);
+            
+            // Save
+            userRepository.save(newUser);
+            logger.info("User {} registered successfully", registerRequest.getUsername());
+            return true;
+        } catch (Exception e) {
+            logger.error("Registration failed for user: {}", registerRequest.getUsername());
+            return false;
+        }
+    }
+
+    /**
+     * Forgot password - generate reset token and send email
+     * @param request
+     */
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        logger.info("Password reset requested for email: {}", request.getEmail());
+        
+        // Find user by email (silently fail if not found for security)
+        userRepository.findByEmail(request.getEmail())
+            .ifPresent(user -> {
+                // Generate reset token (NEEDs TO BE IMPLEMENTED)
+                String resetToken = generatePasswordResetToken();
+                
+                // Store reset token with expiration
+                // passwordResetTokenService.createResetToken(user, resetToken);
+
+                // Send email (EMAIL SERVICE SHOULD BE IMPLEMENTED)
+                //emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
+                logger.info("Password reset email sent to email: {}", request.getUsername());
+            });
+    }
+    
+    /**
+     * Reset password using reset token
+     */
+    @Transactional
+    public boolean resetPassword(ResetPasswordRequest request) {
+        // PASSWORD RESET TOKEN VALIDATION IMPLEMENTATION NEEDED
+        // This is only Placeholder
+        Optional <User> userOpt = passwordResetTokenService.validateResetToken(request.getToken());
+        
+        if (userOpt.isPresent()){
+            User user = userOpt.get();
+            user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+            
+            // Invalidate the reset token
+            passwordResetTokenService.invalidateToken(requet.getToken());
+            
+            logger.info("Password reset successful for user: {}", user.getUsername());
+            return true;
+        }
+
+        logger.warn("Password reset failed: invalid or expired token")
+        return false; 
+    }
+
+    /**
+     * Generate a secure random token for password reset
+     * @return String token
+     */
+    private String generatePasswordResetToken(){
+        return java.util.UUID.randomUUID().toString();
     }
 
     /**
@@ -165,4 +290,6 @@ public class AuthService {
                 .map(User::isActive)
                 .orElse(false);
     }
+
+    /** */
 }
