@@ -8,6 +8,7 @@ import com.example.germanteaching.auth.dto.TokenRefreshResponse;
 import com.example.germanteaching.auth.dto.RegisterRequest;
 import com.example.germanteaching.auth.dto.ResetPasswordRequest;
 import com.example.germanteaching.common.exception.TokenRefreshException;
+import com.example.germanteaching.auth.entity.PasswordResetToken;
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
 import com.example.germanteaching.auth.repository.RefreshTokenRepository;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 /**
  * Enhanced authentication service with refresh token support.
  * Handles login, token  refresh, and logout operations
@@ -53,8 +55,10 @@ public class AuthService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
-    // Cache<username → failureCount>, entries expire 15m after last write
-  
+
+    @Autowired
+    private PasswordResetTokenService passwordResetTokenService;
+
     /**
      * Authenticate user and generate both access and refresh tokens
      * Throws 401 Unauthorized on bad credentials
@@ -181,16 +185,30 @@ public class AuthService {
         // Find user by email (silently fail if not found for security)
         userRepository.findByEmail(request.getEmail())
             .ifPresent(user -> {
-                // Generate reset token (NEEDs TO BE IMPLEMENTED)
-                String resetToken = generatePasswordResetToken();
+                try{
+                    if (passwordResetTokenService.hasActiveToken(user)) {
+                        logger.info("User {} already has an active reset token", user.getUsername());
+                        // here can either creating a new token (current implementation) or
+                        // replace old token by continuing createResetToken
+                        return;
+                    }
                 
-                // Store reset token with expiration
-                // passwordResetTokenService.createResetToken(user, resetToken);
+                // Create reset token
+                PasswordResetToken resetToken = passwordResetTokenService.createResetToken(user);
+                
+                // Send email (implemented this based on email service) (EMAIL SERVICE SHOULD BE IMPLEMENTED)
+                //sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetToken.getToken());
+                
+                // PLACEHOLDER
+                logger.info("Password reset email sent to email: {}", request.getEmail());
 
-                // Send email (EMAIL SERVICE SHOULD BE IMPLEMENTED)
-                //emailService.sendPasswordResetEmail(user.getEmail(), resetToken);
-                logger.info("Password reset email sent to email: {}", request.getUsername());
+                } catch (Exception e) {
+                    logger.error("Failed to process passwrod reset for user: {}", user.getUsername());
+                }
             });
+
+        // Always log success for security (don't reveal if email exists or not)
+        logger.info("Password reset request processed for email: {}", request.getEmail());
     }
     
     /**
@@ -198,32 +216,64 @@ public class AuthService {
      */
     @Transactional
     public boolean resetPassword(ResetPasswordRequest request) {
-        // PASSWORD RESET TOKEN VALIDATION IMPLEMENTATION NEEDED
-        // This is only Placeholder
-        Optional <User> userOpt = passwordResetTokenService.validateResetToken(request.getToken());
-        
-        if (userOpt.isPresent()){
-            User user = userOpt.get();
-            user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
-            userRepository.save(user);
+        try {
+            // Validate reset token and get associated user
+            Optional<User> userOpt = passwordResetTokenService.validateResetToken(request.getToken());
             
-            // Invalidate the reset token
-            passwordResetTokenService.invalidateToken(requet.getToken());
-            
-            logger.info("Password reset successful for user: {}", user.getUsername());
-            return true;
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+
+                // Update user's password
+                user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
+                
+                // Invalidate the reset token
+                passwordResetTokenService.invalidateToken(request.getToken());
+
+                // Revoke all refresh tokens to force re-login
+                refreshTokenService.revokeAllUserTokens(user.getUsername());
+                
+                logger.info("Password reset successful for user: {}", user.getUsername());
+                return true;
+            }
+        } catch (Exception e) {
+            logger.error("Password reset failed", e);
         }
 
-        logger.warn("Password reset failed: invalid or expired token")
+        logger.warn("Password reset failed: invalid or expired token");
         return false; 
     }
 
     /**
-     * Generate a secure random token for password reset
-     * @return String token
+     * TODO:
+     * Send password reset email (placeholder implementation)
+     * Replace with ACTUAL EMAIL SERVICE IMPLEMENTATION
      */
-    private String generatePasswordResetToken(){
-        return java.util.UUID.randomUUID().toString();
+    private void sendPasswordResetEmail(String email, String username, String token) {
+        // Example implementation - replace with your email service
+        logger.info("Sending password reset email to: {}", email);
+        
+        // Build reset URL (adjust based on your frontend)
+        String resetUrl = String.format("https://yourdomain.com/reset-password?token=%s", token);
+        
+        // Email content
+        String subject = "Password Reset Request";
+        String body = String.format(
+            "Hello %s,\n\n" +
+            "You have requested to reset your password. Please click the link below to reset it:\n\n" +
+            "%s\n\n" +
+            "This link will expire in %d hours.\n\n" +
+            "If you did not request this reset, please ignore this email.\n\n" +
+            "Best regards,\n" +
+            "Your App Team",
+            username, resetUrl, passwordResetTokenService.getTokenExpirationHours()
+        );
+        
+        // TODO: Replace with actual email sending
+        // emailService.sendEmail(email, subject, body);
+        
+        // For now, just log the email content (remove in production)
+        logger.debug("Email content - Subject: {}, Body: {}", subject, body);
     }
 
     /**
