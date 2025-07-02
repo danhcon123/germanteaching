@@ -1,4 +1,4 @@
-package com.example.germanteaching.common.exception;
+package com.example.germanteaching.auth.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;

@@ -1,6 +1,11 @@
 package com.example.germanteaching.common.exception;
 
 import com.example.germanteaching.common.dto.ApiResponse;
+import com.example.germanteaching.auth.exception.AuthenticationException;
+import com.example.germanteaching.auth.exception.UserAlreadyExistsException;
+import com.example.germanteaching.auth.exception.InvalidResetTokenException;
+import com.example.germanteaching.auth.exception.TokenRefreshException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -50,6 +55,42 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleCustom(SomeCustomException ex) {
         ApiResponse<Void> response = ApiResponse.badRequest(ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    /*------------------------------------------------------------------
+     * Authentication failures -> 401 
+     *------------------------------------------------------------------*/
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthentication(AuthenticationException ex) {
+        ApiResponse<Void> response = ApiResponse.unauthorized(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /*------------------------------------------------------------------
+     * User already exists -> 409
+     *------------------------------------------------------------------*/
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        ApiResponse<Void> response = ApiResponse.error(HttpStatus.CONFLICT, ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /*------------------------------------------------------------------
+     * Invalid reset token -> 400
+     *------------------------------------------------------------------*/
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidResetToken(InvalidResetTokenException ex) {
+        ApiResponse<Void> response = ApiResponse.badRequest(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);    
+    }
+
+    /*-------------------------------------------------------------------
+     *  Token refresh failures → 401
+     *-------------------------------------------------------------------*/
+    @ExceptionHandler(TokenRefreshException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTokenRefresh(TokenRefreshException ex) {
+        ApiResponse<Void> response = ApiResponse.unauthorized(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     /*------------------------------------------------------------------

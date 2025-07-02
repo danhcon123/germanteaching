@@ -2,11 +2,9 @@ package com.example.germanteaching.auth.controller;
 
 import com.example.germanteaching.auth.dto.*;
 import com.example.germanteaching.auth.service.AuthService;
+import com.example.germanteaching.auth.exception.TokenRefreshException;
 import com.example.germanteaching.common.dto.ApiResponse;
 
-import io.micrometer.core.ipc.http.HttpSender.Response;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -19,44 +17,37 @@ import jakarta.validation.Valid;
 @Validated
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
     
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest req) { 
-        // Bean-Validation runs; if username/email/password violate the annotations you added,
-        // Spring immediately returns 400 Bad Request with the validation errors and the method is never entered.
-        /**
-         * Suppose authService.register returns void or throws on failure, or returns a message.
-         * Example: authService.register throws exception on error, or returns boolean
-         */
-        boolean ok = authService.register(req); //
-        if (ok) {
-            ApiResponse<Void> body = ApiResponse.success("Registration successful");
-            return ResponseEntity.ok(body);
-        } else {
-            ApiResponse<Void> body = ApiResponse.badRequest("Username or email already exists");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-        }
+        // Service will throw UserAlreadyExistsException if user exists
+        // Global handler will convert to 409 CONFLICT
+        authService.register(req);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
 
     @PostMapping("/login")
-    public ResponseEntity<?> login (@Valid @RequestBody LoginRequest req) {
-        /**
-        * Example if returning only ApiResponse:
-        * ApiResponse resp = authService.login(req);
-        * return new ResponseEntity<>(resp, resp.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED);
-        */
-        // Example if returning JWT:
-        String token = authService.loginAndGetToken(req);
-        if (token != null) {
-            return ResponseEntity.ok(ApiResponse.success("Login successful", token));
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                 .body(ApiResponse.unauthorized("Invalid username or password"));
-        }
+    public ResponseEntity<LoginResponse> login (@Valid @RequestBody LoginRequest req) {
+        // Service will throw AuthenticationException on invalid credentials
+        // Global handler will convert to 401 UNAUTHORIZED
+        LoginResponse resp = authService.authenticateUser(req);
+        return ResponseEntity.ok(resp);
     }
 
+    @PostMapping("/refresh-token")
+    public ResponseEntity<TokenRefreshResponse> refreshToken( @Valid @RequestBody TokenRefreshRequest req) {
+        // Service will throw TokenRefreshException on invalid/expired token
+        // Global handler will convert to 401 UNAUTHORIZED
+        TokenRefreshResponse resp = authService.refreshToken(req);
+        return ResponseEntity.ok(resp);
+    }
+    
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
         authService.forgotPassword(req); // service handles silent success

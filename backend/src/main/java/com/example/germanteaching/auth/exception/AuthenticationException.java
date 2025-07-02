@@ -1,0 +1,17 @@
+package com.example.germanteaching.auth.exception;
+
+/**
+ * Thrown when user authentication fails (invalid credentials, etc.)
+ */
+public class AuthenticationException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    
+    public AuthenticationException(String message) {
+        super(message);
+    }
+
+    public AuthenticationException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
