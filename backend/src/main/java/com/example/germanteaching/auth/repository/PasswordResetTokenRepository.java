@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
     Optional<PasswordResetToken>findByToken(String token);
 
+    @Modifying(clearAutomatically = true)
     void deleteByUser(User user);
     
     /**

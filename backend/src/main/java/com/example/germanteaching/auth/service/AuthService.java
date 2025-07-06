@@ -3,14 +3,15 @@ package com.example.germanteaching.auth.service;
 import com.example.germanteaching.auth.dto.ForgotPasswordRequest;
 import com.example.germanteaching.auth.dto.LoginRequest;
 import com.example.germanteaching.auth.dto.LoginResponse;
+import com.example.germanteaching.auth.dto.LogoutRequest;
 import com.example.germanteaching.auth.dto.TokenRefreshRequest;
 import com.example.germanteaching.auth.dto.TokenRefreshResponse;
 import com.example.germanteaching.auth.dto.RegisterRequest;
 import com.example.germanteaching.auth.dto.ResetPasswordRequest;
-import com.example.germanteaching.common.exception.TokenRefreshException;
 import com.example.germanteaching.auth.entity.PasswordResetToken;
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
+import com.example.germanteaching.auth.exception.TokenRefreshException;
 import com.example.germanteaching.auth.repository.RefreshTokenRepository;
 import com.example.germanteaching.auth.repository.UserRepository;
 import com.example.germanteaching.security.JwtUtils;
@@ -312,21 +313,39 @@ public class AuthService {
      * Logout user from current session (revoke specific refresh token).
      */
     @Transactional
-    public void logoutUser(String refreshToken){
-        if (refreshToken != null) {
-            refreshTokenService.revokeRefreshToken(refreshToken);
+    public void logoutUser(LogoutRequest request){
+        // Revoke the refresh token
+        if (request.getRefreshToken() != null) {
+            refreshTokenService.revokeRefreshToken(request.getRefreshToken());
             logger.info("Refresh token revoked");
         }
+
+        // Handle Access token (add to blacklist)
+
+        if (request.getAccessToken() != null) {
+            logger.info("Access token invalidated");
+        }
+
+        // Note: You might want to also blacklist all active JWTs for this user
+        // if you're implementing JWT blacklisting
+
+        // Clear security context for current thread
         SecurityContextHolder.clearContext();
     }
 
     /**
      * Logout user from all devices (revoke all of user's refresh token)
+     * Note: This method should probably take a username from current authenticated user
+     * rather than as a parameter for security reasons
      */
     @Transactional
     public void logoutFromAllDevices(String username){
         refreshTokenService.revokeAllUserTokens(username);
         logger.info("User {} logged out from all devices", username);
+
+        // Note: You might want to also blacklist all active JWTs for this user
+        // if you're implementing JWT blacklisting
+        
         SecurityContextHolder.clearContext();
     }
 

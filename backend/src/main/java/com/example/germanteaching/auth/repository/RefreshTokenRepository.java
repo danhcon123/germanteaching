@@ -32,6 +32,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
      * @param now  the cutoff Instant; only tokens expiring after this are returned
      * @return
      */
+    @Query("SELECT r FROM RefreshToken r WHERE r.user = :user AND r.revoked = false AND r.expiryDate > :now")
     List<RefreshToken> findValidTokensByUser(@Param("user") User user, @Param("now") Instant now);
 
     /**
@@ -58,7 +59,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     /**
      * Revoke all refresh tokens for a user.
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RefreshToken rt SET rt.revoked = true, rt.revokedAt = :now WHERE rt.user = :user AND rt.revoked = false")
     int revokeAllUserTokens(@Param("user") User user, @Param("now") Instant now);
     

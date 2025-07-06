@@ -1,127 +1,86 @@
 package com.example.germanteaching.auth.repository;
 
 import com.example.germanteaching.auth.entity.User;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.test.context.jdbc.Sql;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-public class UserRepositoryTest {
-
-    @Autowired
-    private TestEntityManager entityManager;
-
+@DataJpaTest(
+    includeFilters = @ComponentScan.Filter(
+        type = FilterType.ASSIGNABLE_TYPE,
+        classes = UserRepository.class
+    )
+)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+public class UserRepositoryTest{
+    
     @Autowired
     private UserRepository userRepository;
 
     @Test
-    public void whenFindByUsername_thenReturnUser() {
-        // given
-        User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("testuser@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
-
-        // when
-        Optional<User> found = userRepository.findByUsername(user.getUsername());
-
-        // then
-        assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo(user.getUsername());
+    @DisplayName("Ensure databse is reachable and contains seeded user")
+    public void testDatabaseConnectionAndSeedData(){
+        //Retrieve all users from the containerized database
+        List<User> allUsers = userRepository.findAll();
+        
+        // The seeded container DB has at least alice, bob, carol
+        assertThat(allUsers).isNotEmpty();
+        assertThat(userRepository.existsByUsername("alice")).isTrue();
+        assertThat(userRepository.existsByUsername("bob")).isTrue();
+        assertThat(userRepository.existsByUsername("carol")).isTrue();
     }
 
     @Test
-    public void whenFindByEmail_thenReturnUser() {
-        // given
+    @DisplayName("Persist a new user and verify retrieval by username and email")
+    @Sql(statements = "TRUNCATE TABLE users RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    public void testFindAndExistsByUsernameAndEmail() {
         User user = new User();
-        user.setUsername("testuser2");
-        user.setEmail("testuser2@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
+        user.setUsername ("testuser");
+        user.setEmail("test@example.com");
+        user.setPasswordHash("hashedpass");
+        User saved = userRepository.save(user);
 
-        // when
-        Optional<User> found = userRepository.findByEmail(user.getEmail());
+        // when: we query by username
+        // Verify retrieval by email
+        Optional<User> byUsername = userRepository.findByUsername("testuser");
+        assertThat(byUsername).isPresent().hasValueSatisfying(u -> assertThat(u.getEmail()).isEqualTo("test@example.com"));
 
-        // then
-        assertThat(found).isPresent();
-        assertThat(found.get().getEmail()).isEqualTo(user.getEmail());
+
+        Optional<User> byEmail = userRepository.findByEmail("test@example.com");
+        assertThat(byEmail).isPresent().contains(saved);
+
+        // Verify existence checks
+        assertThat(userRepository.existsByUsername("testuser")).isTrue();
+        assertThat(userRepository.existsByEmail("test@example.com")).isTrue();
     }
 
     @Test
-    public void whenExistsByUsername_thenReturnTrue() {
-        // given
-        User user = new User();
-        user.setUsername("testuser3");
-        user.setEmail("testuser3@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
+    @DisplayName("Custom findByUsernameOrEmail query works for both username and email")
+    @Sql(statements = "TRUNCATE TABLE users RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    public void testFindByUsernameOrEmail() {
+        // Assuming no user 'nouser' exists
+        User temp = new User();
+        temp.setUsername("mixuser");
+        temp.setEmail("mix@example.com");
+        temp.setPasswordHash("pass");
+        userRepository.save(temp);
 
-        // when
-        boolean exists = userRepository.existsByUsername(user.getUsername());
+        // Query by username
+        Optional<User> byName = userRepository.findByUsernameOrEmail("mixuser");
+        assertThat(byName).isPresent().contains(temp);
 
-        // then
-        assertThat(exists).isTrue();
-    }
-
-    @Test
-    public void whenExistsByEmail_thenReturnTrue() {
-        // given
-        User user = new User();
-        user.setUsername("testuser4");
-        user.setEmail("testuser4@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
-
-        // when
-        boolean exists = userRepository.existsByEmail(user.getEmail());
-
-        // then
-        assertThat(exists).isTrue();
-    }
-
-    @Test
-    public void whenFindByUsernameOrEmail_withUsername_thenReturnUser() {
-        // given
-        User user = new User();
-        user.setUsername("testuser5");
-        user.setEmail("testuser5@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
-
-        // when
-        Optional<User> found = userRepository.findByUsernameOrEmail(user.getUsername());
-
-        // then
-        assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo(user.getUsername());
-    }
-
-    @Test
-    public void whenFindByUsernameOrEmail_withEmail_thenReturnUser() {
-        // given
-        User user = new User();
-        user.setUsername("testuser6");
-        user.setEmail("testuser6@example.com");
-        user.setPasswordHash("password");
-        entityManager.persist(user);
-        entityManager.flush();
-
-        // when
-        Optional<User> found = userRepository.findByUsernameOrEmail(user.getEmail());
-
-        // then
-        assertThat(found).isPresent();
-        assertThat(found.get().getEmail()).isEqualTo(user.getEmail());
-    }
+        // Query by email
+        Optional<User> byEmail = userRepository.findByUsernameOrEmail("mix@example.com");
+        assertThat(byEmail).isPresent().contains(temp);
+    }    
 }

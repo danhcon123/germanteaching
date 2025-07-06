@@ -1,8 +1,8 @@
 package com.example.germanteaching.auth.service;
 
-import com.example.germanteaching.common.exception.TokenRefreshException;
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
+import com.example.germanteaching.auth.exception.TokenRefreshException;
 import com.example.germanteaching.auth.repository.RefreshTokenRepository;
 import com.example.germanteaching.auth.repository.UserRepository;
 

@@ -1,10 +1,11 @@
 package com.example.germanteaching.config;
 
+import com.example.germanteaching.auth.service.RefreshTokenService;
 import com.example.germanteaching.security.CustomUserDetailsService;
 import com.example.germanteaching.security.JwtUtils;
 import com.example.germanteaching.security.JwtAuthenticationFilter;
 import com.example.germanteaching.security.JwtAuthorizationFilter;
-import com.example.germanteaching.auth.service.RefreshTokenService;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

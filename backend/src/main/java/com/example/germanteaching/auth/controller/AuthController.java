@@ -2,9 +2,6 @@ package com.example.germanteaching.auth.controller;
 
 import com.example.germanteaching.auth.dto.*;
 import com.example.germanteaching.auth.service.AuthService;
-import com.example.germanteaching.auth.exception.TokenRefreshException;
-import com.example.germanteaching.common.dto.ApiResponse;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -24,7 +21,7 @@ public class AuthController {
     }
     
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterRequest req) { 
+    public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest req) { 
         // Service will throw UserAlreadyExistsException if user exists
         // Global handler will convert to 409 CONFLICT
         authService.register(req);
@@ -47,22 +44,32 @@ public class AuthController {
         TokenRefreshResponse resp = authService.refreshToken(req);
         return ResponseEntity.ok(resp);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequest req) {
+        authService.logoutUser(req);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/logout/all")
+    public ResponseEntity<Void> logoutAll(@RequestBody LogoutAllRequest req) {
+        authService.logoutFromAllDevices(req.getUsername());
+        return ResponseEntity.noContent().build();
+    }
     
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        // Always return 202 regardless of whether email exists (security best practice)
         authService.forgotPassword(req); // service handles silent success
-        return ResponseEntity.ok(ApiResponse.success("IF the email is registered, a reset link has been sent to it."));
+        return ResponseEntity.accepted().build();
     }
     
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
-        boolean success = authService.resetPassword(req);
-        if (success) {
-            return ResponseEntity.ok(ApiResponse.success("Password reset successful"));
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                 .body(ApiResponse.badRequest("Invalid or expired reset token"));
-        }
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        // Service will throw InvalidResetTokenException on invalid/expired token
+        // Global handler will convert to 400 BAD_REQUEST
+        authService.resetPassword(req);
+        return ResponseEntity.noContent().build();
     }
 }
 

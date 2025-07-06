@@ -26,17 +26,16 @@ spring:
         enabled: true
 
 app:
-  jwt:
-    # JWT Secret Key - should be at least 256 bits (32 characters) for HS256
-    # In production, use environment variables or secure configuration
-    jwtSecret: "mySecretKey1234567890"
-    # Access Token Expiration (short-lived for API requests)
-    jwtExpirationMs: 90000 # 15 minutes
-    # Refresh Token Expiration (long-lived for getting new access tokens)
-    jwtRefreshExpirationMs: 604800000 # 7 days
-    # Refresh token cleanup (optional)
-    refreshTokenCleanupCron: "0 0 2 * * ?" # Run at 2 AM daily
-    app.password-reset.token-expiration-hours: 24
+  # JWT Secret Key - should be at least 256 bits (32 characters) for HS256
+  # In production, use environment variables or secure configuration
+  jwtSecret: "uK8v@Y#9Lq2Wm7Pz4Bn0Xc6Rb1Tj3VhQ"
+  # Access Token Expiration (short-lived for API requests)
+  jwtExpirationMs: 90000 # 15 minutes
+  # Refresh Token Expiration (long-lived for getting new access tokens)
+  jwtRefreshExpirationMs: 604800000 # 7 days
+  # Refresh token cleanup (optional)
+  refreshTokenCleanupCron: "0 0 2 * * ?" # Run at 2 AM daily
+  app.password-reset.token-expiration-hours: 24
   cors:
       allowed-origins:
       - http://localhost:3000
