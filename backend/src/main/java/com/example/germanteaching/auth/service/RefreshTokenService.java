@@ -77,7 +77,8 @@ public class RefreshTokenService {
     }
 
     /**
-     * Verify if refresh token is valid and not expired.
+     * Verify if refresh token is valid and not expired, then give token back
+     * if one of both or both yes, then clean from the store, logs why and throws Exception
      */
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (!token.isValid()){
