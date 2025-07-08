@@ -1,38 +1,47 @@
 package com.example.germanteaching.auth.repository;
 
 import com.example.germanteaching.auth.entity.User;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.test.context.jdbc.Sql;
 
 import java.util.Optional;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(
-    includeFilters = @ComponentScan.Filter(
-        type = FilterType.ASSIGNABLE_TYPE,
-        classes = UserRepository.class
-    )
-)
+@DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class UserRepositoryTest{
+class UserRepositoryTest{
     
     @Autowired
     private UserRepository userRepository;
+    
+    @BeforeEach
+    void cleanState(TestInfo testInfo) {
+        // if the test is tagged "seeded", skip the clean
+        if (testInfo.getTags().contains("seeded")) {
+            return;
+        }
+        userRepository.deleteAll();
+    }
 
+        /**
+     * Mark the one test that needs to see the real seed data.
+     */
     @Test
-    @DisplayName("Ensure databse is reachable and contains seeded user")
+    @Tag("seeded")
+    @DisplayName("Ensure database is reachable and contains seeded user")
     public void testDatabaseConnectionAndSeedData(){
         //Retrieve all users from the containerized database
         List<User> allUsers = userRepository.findAll();
-        
+        // because cleanSlate() is rolled back after the previous test,
+        // this first run against a fresh container sees your real seed data.
         // The seeded container DB has at least alice, bob, carol
         assertThat(allUsers).isNotEmpty();
         assertThat(userRepository.existsByUsername("alice")).isTrue();
@@ -42,7 +51,6 @@ public class UserRepositoryTest{
 
     @Test
     @DisplayName("Persist a new user and verify retrieval by username and email")
-    @Sql(statements = "TRUNCATE TABLE users RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     public void testFindAndExistsByUsernameAndEmail() {
         User user = new User();
         user.setUsername ("testuser");
@@ -66,7 +74,6 @@ public class UserRepositoryTest{
 
     @Test
     @DisplayName("Custom findByUsernameOrEmail query works for both username and email")
-    @Sql(statements = "TRUNCATE TABLE users RESTART IDENTITY CASCADE", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
     public void testFindByUsernameOrEmail() {
         // Assuming no user 'nouser' exists
         User temp = new User();

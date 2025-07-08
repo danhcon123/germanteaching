@@ -82,49 +82,49 @@ class RefreshTokenServiceTest {
         return refreshTokenService.createRefreshToken(u.getUserId(), revokeExisting);
     }
 
-        @Nested
-        @DisplayName("Token Creation")
-        class CreationTests {
-            @Test @DisplayName("creates a new refresh token")
-            void createTokenSuccessfully() {
-                RefreshToken token = createToken(testUser);
+    @Nested
+    @DisplayName("Token Creation")
+    class CreationTests {
+        @Test @DisplayName("creates a new refresh token")
+        void createTokenSuccessfully() {
+            RefreshToken token = createToken(testUser);
 
-                assertThat(token).isNotNull();
-                assertThat(token.getToken()).isNotBlank();
-                assertThat(token.getUser().getUserId()).isEqualTo(testUser.getUserId());
-                assertThat(token.getExpiryDate().isAfter(Instant.now(clock)));
-                assertThat(token.isExpired()).isFalse();
-                assertThat(token.isRevoked()).isFalse();
+            assertThat(token).isNotNull();
+            assertThat(token.getToken()).isNotBlank();
+            assertThat(token.getUser().getUserId()).isEqualTo(testUser.getUserId());
+            assertThat(token.getExpiryDate().isAfter(Instant.now(clock)));
+            assertThat(token.isExpired()).isFalse();
+            assertThat(token.isRevoked()).isFalse();
 
-                assertThat(refreshTokenRepository.findByToken(token.getToken()))
-                .isPresent()
-                .get().extracting(RefreshToken::getToken)
-                .isEqualTo(token.getToken());
-            }
+            assertThat(refreshTokenRepository.findByToken(token.getToken()))
+            .isPresent()
+            .get().extracting(RefreshToken::getToken)
+            .isEqualTo(token.getToken());
+        }
+    }
+
+    @Test @DisplayName("revokes old tokens when requested")
+    void revokeExistingOnNew(){
+        RefreshToken first = createToken(testUser);
+        assertThat(first.isRevoked()).isFalse();
+
+        RefreshToken second = createToken(testUser, true);
+        assertThat(second.getToken()).isNotEqualTo(first.getToken());
+
+        assertThat(refreshTokenRepository.findByToken(first.getToken()))
+            .isPresent().get().extracting(RefreshToken::isRevoked)
+            .isEqualTo(true);
+
+
+        assertThat(second.isRevoked()).isFalse();
         }
 
-        @Test @DisplayName("revokes old tokens when requested")
-        void revokeExistingOnNew(){
-            RefreshToken first = createToken(testUser);
-            assertThat(first.isRevoked()).isFalse();
-
-            RefreshToken second = createToken(testUser, true);
-            assertThat(second.getToken()).isNotEqualTo(first.getToken());
-
-            assertThat(refreshTokenRepository.findByToken(first.getToken()))
-                .isPresent().get().extracting(RefreshToken::isRevoked)
-                .isEqualTo(true);
-
-
-            assertThat(second.isRevoked()).isFalse();
-            }
-
-        @Test @DisplayName("throws if user not found")
-        void errorOnUnknownUser() {
-            assertThatThrownBy(() -> refreshTokenService.createRefreshToken(99999))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("User not found with id: 99999");
-        }
+    @Test @DisplayName("throws if user not found")
+    void errorOnUnknownUser() {
+        assertThatThrownBy(() -> refreshTokenService.createRefreshToken(99999))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("User not found with id: 99999");
+    }
     
 
     @Nested
