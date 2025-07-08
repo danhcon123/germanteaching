@@ -257,4 +257,6 @@ CREATE INDEX idx_user_task_attempts_task ON user_task_attempts(task_id);
 CREATE INDEX idx_user_unit_challenge_prog_user ON user_unit_challenge_progress(user_id);
 CREATE INDEX idx_coin_tx_user ON user_coin_transactions(user_id);
 CREATE INDEX idx_xp_txn_user ON user_xp_transactions(user_id);
+CREATE INDEX idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_expiry ON password_reset_tokens(expiry_date);
 
