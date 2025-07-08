@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.test.annotation.Rollback;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -44,6 +41,12 @@ class PasswordResetTokenRepositoryTest {
         futureTime = now.plus(23, ChronoUnit.HOURS);
         pastTime = now.minus(1, ChronoUnit.HOURS);
 
+        // 1) Make sure the users_user_id_seq is at the current MAX(user_id)
+        entityManager.getEntityManager()
+            .createNativeQuery(
+            "SELECT setval('users_user_id_seq', (SELECT COALESCE(MAX(user_id), 0) FROM users))"
+            )
+            .getSingleResult();
         // Create test users
         testUser = new User();
         testUser.setEmail("test@example.com");
