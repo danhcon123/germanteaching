@@ -9,36 +9,29 @@ import com.example.germanteaching.auth.service.RefreshTokenService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
-
-import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
+import java.time.Clock;
 import java.time.ZoneOffset;
-import java.util.*;
-import java.util.concurrent.*;
 
-@SpringBootTest
-@Transactional // Roll back after each test for isolation
-@TestPropertySource(properties = {
-    "app.jwtRefreshExpirationMs=3600000", // 1 hour for testing
-    "app.refreshTokenCleanupCron=0 0 2 * * ?",
-    "spring.jpa.hibernate.ddl-auto=create-drop" // Use create-drop for tests
-})
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Import({ RefreshTokenService.class, RefreshTokenServiceTest.Clockconfig.class}) //Import for the DataJpa to have access to services
+@Transactional
 class RefreshTokenServiceTest {
 
     @TestConfiguration
@@ -60,6 +53,7 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void Setup(){
+        userRepository.deleteAll();
         // Create test users - no cleanup needed, rollback handles it
         testUser  = userRepository.save(newUser("testuser",  "test@example.com"));
         testUser2 = userRepository.save(newUser("testuser2", "test2@example.com"));
