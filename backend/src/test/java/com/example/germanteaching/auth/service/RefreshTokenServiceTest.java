@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,13 +48,14 @@ class RefreshTokenServiceTest {
     @Autowired private RefreshTokenRepository refreshTokenRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private Clock clock;
-
+    @Autowired private JdbcTemplate jdbc;
     private User testUser;
     private User testUser2;
 
     @BeforeEach
     void Setup(){
-        userRepository.deleteAll();
+        jdbc.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE");
+
         // Create test users - no cleanup needed, rollback handles it
         testUser  = userRepository.save(newUser("testuser",  "test@example.com"));
         testUser2 = userRepository.save(newUser("testuser2", "test2@example.com"));

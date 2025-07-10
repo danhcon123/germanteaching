@@ -9,6 +9,7 @@ import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Optional;
 import java.util.List;
@@ -20,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserRepositoryTest{
     
     @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
     private UserRepository userRepository;
     
     @BeforeEach
@@ -28,7 +32,8 @@ class UserRepositoryTest{
         if (testInfo.getTags().contains("seeded")) {
             return;
         }
-        userRepository.deleteAll();
+          // Truncate all users *and* reset the sequence back to 1
+        jdbc.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE");
     }
 
         /**

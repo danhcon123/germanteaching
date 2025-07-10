@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -29,6 +30,9 @@ public class RefreshTokenRepositoryTest {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
     
+    @Autowired
+    private JdbcTemplate jdbc;
+    
     private User testUser;
     private User anotherUser;
     private Instant now;
@@ -37,6 +41,9 @@ public class RefreshTokenRepositoryTest {
     
     @BeforeEach
     void setUp(){
+          // Truncate all users *and* reset the sequence back to 1
+        jdbc.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE");
+    
         now = Instant.now();
         futureTime = now.plus(1, ChronoUnit.HOURS);
         pastTime = now.minus(1, ChronoUnit.HOURS);
