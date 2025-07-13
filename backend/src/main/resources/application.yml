@@ -15,6 +15,17 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 1
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: german.teaching.yeah@gmail.com
+    password: your-app-password
+    properties:
+      mail:
+        smtp:
+          ath: true
+          starttls:
+            enable: true
 
   management:
     endpoints:
@@ -35,15 +46,95 @@ app:
   jwtRefreshExpirationMs: 604800000 # 7 days
   # Refresh token cleanup (optional)
   refreshTokenCleanupCron: "0 0 2 * * ?" # Run at 2 AM daily
-  app.password-reset.token-expiration-hours: 24
   cors:
       allowed-origins:
       - http://localhost:3000
       - http://localhost:4200
       - https://your-production-domain.com
+  email:
+    from-address: noreply@germanteaching.com
+    from-name: German Teaching App
+    base-url: https://germanteaching.com
+    reset-token-expiration-hours: 24
+    enabled: true
+    app-name: German Teaching App
 
 # Logging configuration
 logging:
   level:
     com.example.germanteaching: DEBUG
     org.springframework.security: DEBUG
+
+
+# Email Configuration for application.properties or application.yml
+
+# ===== SMTP Configuration =====
+# Gmail Configuration (for development/testing)
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=your-email@gmail.com
+# spring.mail.password=your-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+# spring.mail.properties.mail.smtp.starttls.required=true
+
+# Alternative: SendGrid Configuration
+# spring.mail.host=smtp.sendgrid.net
+# spring.mail.port=587
+# spring.mail.username=apikey
+# spring.mail.password=your-sendgrid-api-key
+
+# Alternative: AWS SES Configuration
+# spring.mail.host=email-smtp.us-east-1.amazonaws.com
+# spring.mail.port=587
+# spring.mail.username=your-aws-ses-smtp-username
+# spring.mail.password=your-aws-ses-smtp-password
+
+# ===== Custom Email Properties =====
+# app.email.from-address=noreply@your-domain.com
+# app.email.from-name=German Teaching App
+# app.email.base-url=https://your-domain.com
+# app.email.reset-token-expiration-hours=24
+# app.email.enabled=true
+
+# ===== Development Profile (application-dev.properties) =====
+# For development, you might want to disable actual email sending
+# app.email.enabled=false
+
+# ===== Production Profile (application-prod.properties) =====
+# Use environment variables for sensitive information
+# spring.mail.username=${MAIL_USERNAME}
+# spring.mail.password=${MAIL_PASSWORD}
+# app.email.from-address=${EMAIL_FROM_ADDRESS}
+# app.email.base-url=${APP_BASE_URL}
+
+# ===== Alternative YAML Configuration (application.yml) =====
+# spring:
+#   mail:
+#     host: smtp.gmail.com
+#     port: 587
+#     username: ${MAIL_USERNAME:your-email@gmail.com}
+#     password: ${MAIL_PASSWORD:your-app-password}
+#     properties:
+#       mail:
+#         smtp:
+#           auth: true
+#           starttls:
+#             enable: true
+#             required: true
+#
+# app:
+#   email:
+#     from-address: ${EMAIL_FROM_ADDRESS:noreply@your-domain.com}
+#     from-name: German Teaching App
+#     base-url: ${APP_BASE_URL:https://your-domain.com}
+#     reset-token-expiration-hours: 24
+#     enabled: ${EMAIL_ENABLED:true}
+
+# ===== Environment Variables for Production =====
+# Set these in your production environment:
+# MAIL_USERNAME=your-production-email@domain.com
+# MAIL_PASSWORD=your-production-password
+# EMAIL_FROM_ADDRESS=noreply@your-domain.com
+# APP_BASE_URL=https://your-production-domain.com
+# EMAIL_ENABLED=true

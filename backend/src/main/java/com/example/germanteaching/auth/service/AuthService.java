@@ -14,6 +14,10 @@ import com.example.germanteaching.auth.entity.User;
 import com.example.germanteaching.auth.exception.TokenRefreshException;
 import com.example.germanteaching.auth.repository.RefreshTokenRepository;
 import com.example.germanteaching.auth.repository.UserRepository;
+import com.example.germanteaching.email.dto.PasswordResetEmailData;
+import com.example.germanteaching.email.dto.WelcomeEmailData;
+import com.example.germanteaching.email.config.EmailProperties;
+import com.example.germanteaching.email.service.EmailServiceImpl;
 import com.example.germanteaching.security.JwtUtils;
 
 
@@ -32,7 +36,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 /**
  * Enhanced authentication service with refresh token support.
@@ -60,6 +63,11 @@ public class AuthService {
     @Autowired
     private PasswordResetTokenService passwordResetTokenService;
 
+    @Autowired
+    private EmailServiceImpl emailService;
+
+    @Autowired
+    private EmailProperties emailProperties;
     /**
      * Authenticate user and generate both access and refresh tokens
      * Throws 401 Unauthorized on bad credentials
@@ -167,8 +175,18 @@ public class AuthService {
             
             // Save
             userRepository.save(newUser);
+
+            // Send welcome email
+            try {
+                if (emailService.isEmailEnabled()) {
+                    emailService.sendWelcomeEmail(newUser);
+            }} catch (Exception e) {
+                logger.error("Failed to send welcome email to user: {}", newUser.getUsername(), e);
+            }
+
             logger.info("User {} registered successfully", registerRequest.getUsername());
             return true;
+
         } catch (Exception e) {
             logger.error("Registration failed for user: {}", registerRequest.getUsername());
             return false;
@@ -198,9 +216,9 @@ public class AuthService {
                 PasswordResetToken resetToken = passwordResetTokenService.createResetToken(user);
                 
                 // Send email (implemented this based on email service) (EMAIL SERVICE SHOULD BE IMPLEMENTED)
-                //sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetToken.getToken());
-                
-                // PLACEHOLDER
+                if (emailService.isEmailEnabled()) {
+                    emailService.sendPasswordResetEmail( user, resetToken);
+                }
                 logger.info("Password reset email sent to email: {}", request.getEmail());
 
                 } catch (Exception e) {
@@ -243,38 +261,6 @@ public class AuthService {
 
         logger.warn("Password reset failed: invalid or expired token");
         return false; 
-    }
-
-    /**
-     * TODO:
-     * Send password reset email (placeholder implementation)
-     * Replace with ACTUAL EMAIL SERVICE IMPLEMENTATION
-     */
-    private void sendPasswordResetEmail(String email, String username, String token) {
-        // Example implementation - replace with your email service
-        logger.info("Sending password reset email to: {}", email);
-        
-        // Build reset URL (adjust based on your frontend)
-        String resetUrl = String.format("https://yourdomain.com/reset-password?token=%s", token);
-        
-        // Email content
-        String subject = "Password Reset Request";
-        String body = String.format(
-            "Hello %s,\n\n" +
-            "You have requested to reset your password. Please click the link below to reset it:\n\n" +
-            "%s\n\n" +
-            "This link will expire in %d hours.\n\n" +
-            "If you did not request this reset, please ignore this email.\n\n" +
-            "Best regards,\n" +
-            "Your App Team",
-            username, resetUrl, passwordResetTokenService.getTokenExpirationHours()
-        );
-        
-        // TODO: Replace with actual email sending
-        // emailService.sendEmail(email, subject, body);
-        
-        // For now, just log the email content (remove in production)
-        logger.debug("Email content - Subject: {}, Body: {}", subject, body);
     }
 
     /**
@@ -359,6 +345,4 @@ public class AuthService {
                 .map(User::isActive)
                 .orElse(false);
     }
-
-    /** */
 }
