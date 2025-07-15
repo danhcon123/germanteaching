@@ -46,5 +46,5 @@ public interface EmailService {
     /**
      * Build login URL
      */
-    String builLoginUrl();
+    String buildLoginUrl();
 }

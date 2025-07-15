@@ -1,5 +1,6 @@
 package com.example.germanteaching.auth.repository;
 
+import com.example.germanteaching.auth.entity.PasswordResetToken;
 import com.example.germanteaching.auth.entity.RefreshToken;
 import com.example.germanteaching.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

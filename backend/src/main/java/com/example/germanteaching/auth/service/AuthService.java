@@ -204,15 +204,8 @@ public class AuthService {
         // Find user by email (silently fail if not found for security)
         userRepository.findByEmail(request.getEmail())
             .ifPresent(user -> {
-                try{
-                    if (passwordResetTokenService.hasActiveToken(user)) {
-                        logger.info("User {} already has an active reset token", user.getUsername());
-                        // here can either creating a new token (current implementation) or
-                        // replace old token by continuing createResetToken
-                        return;
-                    }
-                
-                // Create reset token
+                try{            
+                // Delete+create new reset token or reuse token <15m old
                 PasswordResetToken resetToken = passwordResetTokenService.createResetToken(user);
                 
                 // Send email (implemented this based on email service) (EMAIL SERVICE SHOULD BE IMPLEMENTED)
@@ -222,7 +215,11 @@ public class AuthService {
                 logger.info("Password reset email sent to email: {}", request.getEmail());
 
                 } catch (Exception e) {
-                    logger.error("Failed to process passwrod reset for user: {}", user.getUsername());
+                    logger.error("Failed to process passwrod reset for user: {}", 
+                        user.getUsername(),
+                        e.getMessage(),
+                        e
+                    );
                 }
             });
 

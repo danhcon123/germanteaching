@@ -2,15 +2,20 @@ package com.example.germanteaching.auth.repository;
 
 import com.example.germanteaching.auth.entity.PasswordResetToken;
 import com.example.germanteaching.auth.entity.User;
+
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.repository.query.Param;
 import java.time.Instant;
 
 import java.util.Optional;
 
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
+    
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<PasswordResetToken>findByToken(String token);
 
     @Modifying(clearAutomatically = true)
@@ -35,4 +40,12 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
      * Check if user has any active tokens
      */
     boolean existsByUserAndUsedFalseAndExpiryDateAfter(User user, Instant currentTime);
+
+    /**
+     * Get the most recently created valid token 
+     */
+    Optional<PasswordResetToken>
+        findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreatedAtDesc(User user, Instant now);
+    
+    
 }

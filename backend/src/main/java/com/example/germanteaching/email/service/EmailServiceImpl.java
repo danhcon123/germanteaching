@@ -121,7 +121,7 @@ public class EmailServiceImpl implements EmailService{
     public void sendWelcomeEmail(User user) {
         WelcomeEmailData welcomeData = new WelcomeEmailData(
             user.getUsername(),
-            builLoginUrl(),
+            buildLoginUrl(),
             emailProperties.getAppName()
             );
         
@@ -165,7 +165,7 @@ public class EmailServiceImpl implements EmailService{
     }
     
     @Override
-    public String builLoginUrl() {
+    public String buildLoginUrl() {
         return emailProperties.getBaseUrl() + "/login"; // CHECK THIS 
     };
 }

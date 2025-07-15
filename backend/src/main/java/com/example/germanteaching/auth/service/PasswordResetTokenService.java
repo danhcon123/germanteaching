@@ -3,6 +3,9 @@ package com.example.germanteaching.auth.service;
 import com.example.germanteaching.auth.entity.PasswordResetToken;
 import com.example.germanteaching.auth.entity.User;
 import com.example.germanteaching.auth.repository.UserRepository;
+
+import jakarta.persistence.LockModeType;
+
 import com.example.germanteaching.auth.repository.PasswordResetTokenRepository;
 
 import org.slf4j.Logger;
@@ -13,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -23,6 +27,8 @@ public class PasswordResetTokenService {
 
     private static final SecureRandom secureRandom =  new SecureRandom();
     
+    private static final Duration REUSE_WINDOW = Duration.ofMinutes(15);
+
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
     
@@ -36,6 +42,13 @@ public class PasswordResetTokenService {
      */
     @Transactional
     public PasswordResetToken createResetToken(User user){
+        if (passwordResetTokenRepository.existsByUserAndUsedFalseAndExpiryDateAfter(user, Instant.now())) {
+            Optional<PasswordResetToken> recent = 
+                passwordResetTokenRepository.findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreatedAtDesc(user, Instant.now());
+            if (recent.isPresent() && recent.get().getCreateDate().isAfter(Instant.now().minus(REUSE_WINDOW))) {
+                return recent.get();
+            }
+        }
         logger.info("Creating password reset token for user: {}", user.getUsername());
         
         // Delete any existing tokens for this user (enforces one active token per user)
@@ -79,6 +92,19 @@ public class PasswordResetTokenService {
                 // Transforms the surviving PasswordResetToken into its associated User object.
                 // Final result is Optional<User>: present only if the token existed and was valid.
                 .map(PasswordResetToken::getUser);
+    }
+
+    /**
+     * Validate and immediately mark used in one transaction+lock.
+     */
+    @Transactional
+    public Optional<User> validateAndInvalidate(String token) {
+        return passwordResetTokenRepository.findByToken(token)
+        .filter(PasswordResetToken::isValid)
+        .map(t -> {
+            t.setUsed(true);
+            return t.getUser();
+        });
     }
 
     /**
