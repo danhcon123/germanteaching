@@ -17,7 +17,7 @@ import com.example.germanteaching.auth.repository.UserRepository;
 import com.example.germanteaching.email.dto.PasswordResetEmailData;
 import com.example.germanteaching.email.dto.WelcomeEmailData;
 import com.example.germanteaching.email.config.EmailProperties;
-import com.example.germanteaching.email.service.EmailServiceImpl;
+import com.example.germanteaching.email.service.EmailService;
 import com.example.germanteaching.security.JwtUtils;
 
 
@@ -64,7 +64,7 @@ public class AuthService {
     private PasswordResetTokenService passwordResetTokenService;
 
     @Autowired
-    private EmailServiceImpl emailService;
+    private EmailService emailService;
 
     @Autowired
     private EmailProperties emailProperties;

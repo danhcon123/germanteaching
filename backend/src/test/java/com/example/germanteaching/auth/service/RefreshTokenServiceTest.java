@@ -58,7 +58,6 @@ class RefreshTokenServiceTest {
     private User testUser;
     private User testUser2;
 
-
     @BeforeEach
     void Setup(){
         jdbc.execute("TRUNCATE TABLE users RESTART IDENTITY CASCADE");
