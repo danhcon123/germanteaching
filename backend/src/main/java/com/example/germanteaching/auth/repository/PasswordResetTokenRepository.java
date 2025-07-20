@@ -45,7 +45,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
      * Get the most recently created valid token 
      */
     Optional<PasswordResetToken>
-        findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreatedAtDesc(User user, Instant now);
+        findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreateDateDesc(User user, Instant now);
     
     
 }

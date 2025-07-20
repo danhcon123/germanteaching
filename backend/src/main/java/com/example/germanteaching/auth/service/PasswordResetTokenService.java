@@ -44,7 +44,7 @@ public class PasswordResetTokenService {
     public PasswordResetToken createResetToken(User user){
         if (passwordResetTokenRepository.existsByUserAndUsedFalseAndExpiryDateAfter(user, Instant.now())) {
             Optional<PasswordResetToken> recent = 
-                passwordResetTokenRepository.findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreatedAtDesc(user, Instant.now());
+                passwordResetTokenRepository.findFirstByUserAndUsedFalseAndExpiryDateAfterOrderByCreateDateDesc(user, Instant.now());
             if (recent.isPresent() && recent.get().getCreateDate().isAfter(Instant.now().minus(REUSE_WINDOW))) {
                 return recent.get();
             }
