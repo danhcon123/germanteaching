@@ -18,12 +18,12 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: german.teaching.yeah@gmail.com
-    password: your-app-password
+    username: ${GMAIL_USERNAME}
+    password: ${GMAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          ath: true
+          auth: true
           starttls:
             enable: true
 

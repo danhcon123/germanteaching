@@ -14,6 +14,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMailMessage;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -37,39 +38,39 @@ public class EmailServiceImpl implements EmailService{
     @Autowired
     private EmailProperties emailProperties;
     
+    @Async
     @Override
     public void sendPasswordResetEmail(String toEmail, PasswordResetEmailData data){
         if (!emailProperties.isEnabled()) {
             logger.info("Email service is disabled. Would send password reset email to: {}", toEmail);
             return;
         }
-        CompletableFuture.runAsync(() -> {
-            try{
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-                helper.setFrom(emailProperties.getFromAddress(), emailProperties.getFromName());
-                helper.setTo(toEmail);
-                helper.setSubject("Password Reset Request - " + data.getAppName());
+        try{
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-                // Create Thymeleaf context with data
-                Context context = new Context();
-                context.setVariable("username", data.getUsername());
-                context.setVariable("resetUrl", data.getResetUrl());
-                context.setVariable("expirationHours", data.getExpirationHours());
-                context.setVariable("appName", data.getAppName());
+            helper.setFrom(emailProperties.getFromAddress(), emailProperties.getFromName());
+            helper.setTo(toEmail);
+            helper.setSubject("Password Reset Request - " + data.getAppName());
 
-                // Process HTML template
-                String htmlContent = templateEngine.process("email/password-reset", context);
-                helper.setText(htmlContent, true);
+            // Create Thymeleaf context with data
+            Context context = new Context();
+            context.setVariable("username", data.getUsername());
+            context.setVariable("resetUrl", data.getResetUrl());
+            context.setVariable("expirationHours", data.getExpirationHours());
+            context.setVariable("appName", data.getAppName());
 
-                mailSender.send(message);
-                logger.info("Password reset email sent successfully to: {}", toEmail);
-            } catch (Exception e) {
-                logger.error("Failed to send password reset email to : {}", toEmail, e);
-                throw new RuntimeException("Failed to send password reset email", e);
-            }
-        });
+            // Process HTML template
+            String htmlContent = templateEngine.process("email/password-reset", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            logger.info("Password reset email sent successfully to: {}", toEmail);
+        } catch (Exception e) {
+            logger.error("Failed to send password reset email to : {}", toEmail, e);
+            throw new RuntimeException("Failed to send password reset email", e);
+        }
     }
     
     @Override
@@ -85,36 +86,36 @@ public class EmailServiceImpl implements EmailService{
         sendPasswordResetEmail(user.getEmail(), emailData);
     }
 
+    @Async
     @Override
     public void sendWelcomeEmail(String toEmail, WelcomeEmailData data){
         if (!emailProperties.isEnabled()) {
             logger.info("Email service is disabled. Would send welcome email to : {}", toEmail);
             return;
         }
-        
-        CompletableFuture.runAsync(() -> {
-            try{
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                
-                helper.setFrom(emailProperties.getFromAddress(), emailProperties.getFromName());
-                helper.setTo(toEmail);
-                helper.setSubject("Welcome to " + data.getAppName() + "!");
+    
+        try{
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(emailProperties.getFromAddress(), emailProperties.getFromName());
+            helper.setTo(toEmail);
+            helper.setSubject("Welcome to " + data.getAppName() + "!");
 
-                Context context = new Context();
-                context.setVariable(("username"), data.getUsername());
-                context.setVariable("loginUrl", data.getLoginUrl());
-                context.setVariable("appName", data.getAppName());
+            Context context = new Context();
+            context.setVariable(("username"), data.getUsername());
+            context.setVariable("loginUrl", data.getLoginUrl());
+            context.setVariable("appName", data.getAppName());
 
-                String htmlContent = templateEngine.process("email/welcome", context);
-                helper.setText(htmlContent, true);
-                
-                mailSender.send(message);
-                logger.info("Welcome email sent successfully to: {}", toEmail);
-            } catch (Exception e){
-                logger.error("Failed to send welcome email to: {}", toEmail, e);
-            }
-        });
+            String htmlContent = templateEngine.process("email/welcome", context);
+            helper.setText(htmlContent, true);
+            
+            mailSender.send(message);
+            logger.info("Welcome email sent successfully to: {}", toEmail);
+        } catch (Exception e){
+            logger.error("Failed to send welcome email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send welcome email", e); // Add this line
+        }
     }
 
     @Override
@@ -128,6 +129,7 @@ public class EmailServiceImpl implements EmailService{
         sendWelcomeEmail(user.getEmail(), welcomeData);
     }
 
+    @Async
     @Override
     public void sendPlainTextEmail(String toEmail, String subject, String body){
         if (!emailProperties.isEnabled()) {
@@ -135,22 +137,20 @@ public class EmailServiceImpl implements EmailService{
             return;
         }
 
-        CompletableFuture.runAsync(() -> {
-            try{
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(emailProperties.getFromAddress());
-                message.setTo(toEmail);
-                message.setSubject(subject);
-                message.setText(body);
-                
-                mailSender.send(message);
-                logger.info("Plain text email sent successfully to: {}", toEmail);
+        try{
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(emailProperties.getFromAddress());
+            message.setTo(toEmail);
+            message.setSubject(subject);
+            message.setText(body);
+            
+            mailSender.send(message);
+            logger.info("Plain text email sent successfully to: {}", toEmail);
 
-            } catch (Exception e) {
-                logger.error("Failed to send plain text email to: {}", toEmail, e);
-                throw new RuntimeException("Failed to send email", e);
-            }
-        });
+        } catch (Exception e) {
+            logger.error("Failed to send plain text email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email", e);
+        }
     }
 
     @Override
